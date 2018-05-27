@@ -1,0 +1,2 @@
+# CCITTFaxDecode
+Basic golang CCITTFaxDecoder
