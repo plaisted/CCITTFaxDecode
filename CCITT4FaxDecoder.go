@@ -54,7 +54,7 @@ func (r *CCITT4FaxDecoder) Decode() ([][]uint8, error) {
 		// mode lookup
 		mode, err := r.getMode()
 		if err != nil {
-			return nil, err
+			return append(lines, line), err
 		}
 		r.buffer.FlushBits(mode.BitsUsed)
 
@@ -84,8 +84,11 @@ func (r *CCITT4FaxDecoder) Decode() ([][]uint8, error) {
 					r.buffer.FlushBits(h.BitsUsed)
 					length[i] += h.Pixels
 					color[i] = uint8(h.CColor)
-					isWhite = !isWhite
-					scan = !h.Terminating
+
+					if h.Terminating {
+						isWhite = !isWhite
+						scan = false
+					}
 				}
 			}
 
@@ -143,16 +146,15 @@ func (r *CCITT4FaxDecoder) Decode() ([][]uint8, error) {
 func (r *CCITT4FaxDecoder) DecodeToImg() (image.Image, error) {
 	var img *image.Gray
 	lines, err := r.Decode()
-	if err != nil {
-		return img, err
-	}
 	img = image.NewGray(image.Rect(0, 0, int(r.width), len(lines)))
 	for y := 0; y < len(lines); y++ {
 		for x := 0; x < int(r.width); x++ {
-			img.SetGray(x, y, color.Gray{Y: lines[y][x]})
+			if len(lines[y]) > x {
+				img.SetGray(x, y, color.Gray{Y: lines[y][x]})
+			}
 		}
 	}
-	return img, nil
+	return img, err
 }
 
 func reverseColor(current uint8) uint8 {
